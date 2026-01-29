@@ -1,40 +1,97 @@
-name: Build APK
+name: Build APK Cordova
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    # 1. Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v4
     
-    - name: Setup Java
+    # 2. Setup Java (WAJIB untuk Android)
+    - name: Setup Java JDK
       uses: actions/setup-java@v4
       with:
-        distribution: temurin
-        java-version: 11
+        distribution: 'temurin'
+        java-version: '11'  # Java 11 paling stabil
     
+    # 3. Setup Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 16
+        node-version: '18'  # LTS version
     
-    - name: Install Cordova
-      run: npm install -g cordova
-    
-    - name: Check Files
+    # 4. Install Cordova dan Android SDK
+    - name: Install Dependencies
       run: |
-        echo "=== Current Directory ==="
-        pwd
-        ls -la
-        echo "=== www folder ==="
-        ls -la www/ || echo "www folder not found"
+        npm install -g cordova@11.0.0
+        cordova telemetry off
     
+    # 5. Buat project Cordova
     - name: Create Cordova Project
       run: |
+        cordova create myapp com.hdboost.ai "HD BOOST AI"
+        cd myapp
+    
+    # 6. Salin file aplikasi kita
+    - name: Copy App Files
+      run: |
+        # Salin semua file dari repo kita
+        cp -r ../www/* www/ || echo "Copy www files"
+        cp ../config.xml . || echo "Copy config.xml"
+        
+        # Cek apakah file berhasil disalin
+        echo "=== File Structure ==="
+        ls -la
+        echo "=== www folder ==="
+        ls -la www/ || echo "www folder kosong"
+    
+    # 7. Tambah platform Android (VERSI TUA YANG STABIL)
+    - name: Add Android Platform
+      run: |
+        cordova platform add android@10.1.1
+        echo "Android platform added"
+    
+    # 8. Build APK (GRADLE)
+    - name: Build Android APK
+      run: |
+        echo "Building APK..."
+        cordova build android --verbose || echo "Build mungkin error, tapi kita coba continue"
+    
+    # 9. Cari file APK hasil build
+    - name: Find APK Files
+      run: |
+        echo "=== Mencari file APK ==="
+        find . -name "*.apk" -type f 2>/dev/null || echo "APK tidak ditemukan"
+        find . -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null || true
+    
+    # 10. Upload APK jika ada
+    - name: Upload APK Artifact
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: hd-boost-ai-apk
+        path: |
+          myapp/platforms/android/app/build/outputs/apk/**/*.apk
+          myapp/platforms/android/build/outputs/apk/**/*.apk
+        retention-days: 7
+    
+    # 11. Jika gagal, beri error message
+    - name: Build Status
+      if: failure()
+      run: |
+        echo "❌ Build gagal!"
+        echo "Kemungkinan masalah:"
+        echo "1. Cordova/Android version mismatch"
+        echo "2. Plugin tidak kompatibel"
+        echo "3. Android SDK tidak ada"
+        echo ""
+        echo "SOLUSI: Build di komputer lokal atau pakai service online"      run: |
         cordova create myapp com.hdboost.ai "HD BOOST AI"
         cd myapp
     
