@@ -1,0 +1,13 @@
+{
+  "name": "hd-boost-ai",
+  "version": "1.0.0",
+  "description": "Aplikasi enhancer foto dan video gratis",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "randzly128",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

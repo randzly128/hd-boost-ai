@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HD BOOST AI</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="splash">
+        <div class="splash-content">
+            <i class="fas fa-magic"></i>
+            <h1>HD BOOST AI</h1>
+            <p>Memuat aplikasi...</p>
+            <div class="loading-bar">
+                <div class="loading-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp">
+        <header>
+            <h1><i class="fas fa-robot"></i> HD BOOST AI</h1>
+            <p class="subtitle">Enhancer Foto & Video Gratis</p>
+        </header>
+
+        <div class="container">
+            <div class="card">
+                <div class="card-icon">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <h3>Foto HD</h3>
+                <p>Tingkatkan kualitas ke 4K/8K</p>
+                <button class="btn" onclick="processPhoto()">
+                    <i class="fas fa-upload"></i> Pilih Foto
+                </button>
+                <div class="progress">
+                    <div class="progress-bar" id="photo-progress"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h3>Video HD</h3>
+                <p>Upscale video ke 1080p/4K</p>
+                <button class="btn" onclick="processVideo()">
+                    <i class="fas fa-film"></i> Pilih Video
+                </button>
+                <div class="progress">
+                    <div class="progress-bar" id="video-progress"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                </div>
+                <h3>AI Tools</h3>
+                <p>Alat AI canggih</p>
+                <button class="btn" onclick="showTools()">
+                    <i class="fas fa-tools"></i> Buka Tools
+                </button>
+            </div>
+        </div>
+
+        <div class="result-area hidden" id="resultArea">
+            <h3><i class="fas fa-check-circle"></i> Selesai!</h3>
+            <p id="resultMessage"></p>
+            <button class="btn-secondary" onclick="closeResult()">
+                <i class="fas fa-times"></i> Tutup
+            </button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
