@@ -1,4 +1,5 @@
 name: Build APK Cordova
+
 on:
   push:
     branches: [main]
@@ -18,111 +19,117 @@ jobs:
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '11'  # Java 11 paling stabil
+        java-version: '11'
     
     # 3. Setup Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'  # LTS version
+        node-version: '18'
     
-    # 4. Install Cordova dan Android SDK
-    - name: Install Dependencies
+    # 4. Setup Android SDK (WAJIB DITAMBAHKAN)
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 33
+        build-tools-version: "33.0.0"
+        ndk-version: "25.1.8937393"
+        cmake-version: "3.22.1"
+    
+    # 5. Accept Android licenses
+    - name: Accept Android Licenses
+      run: |
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+    
+    # 6. Install Cordova
+    - name: Install Cordova
       run: |
         npm install -g cordova@11.0.0
-        cordova telemetry off
+        cordova --version
     
-    # 5. Buat project Cordova
-    - name: Create Cordova Project
+    # 7. Install dependencies dari package.json jika ada
+    - name: Install Project Dependencies
       run: |
-        cordova create myapp com.hdboost.ai "HD BOOST AI"
-        cd myapp
+        if [ -f "package.json" ]; then
+          npm ci
+        else
+          echo "No package.json found, skipping npm install"
+        fi
     
-    # 6. Salin file aplikasi kita
-    - name: Copy App Files
+    # 8. Setup Cordova project di ROOT directory (JANGAN buat folder myapp)
+    - name: Initialize Cordova Project
       run: |
-        # Salin semua file dari repo kita
-        cp -r ../www/* www/ || echo "Copy www files"
-        cp ../config.xml . || echo "Copy config.xml"
+        # Jika sudah ada config.xml, skip create
+        if [ ! -f "config.xml" ]; then
+          cordova create . com.hdboost.ai "HD BOOST AI"
+        else
+          echo "config.xml already exists, skipping cordova create"
+          # Update project dengan config yang ada
+          cordova platform remove android 2>/dev/null || true
+        fi
         
-        # Cek apakah file berhasil disalin
-        echo "=== File Structure ==="
-        ls -la
-        echo "=== www folder ==="
-        ls -la www/ || echo "www folder kosong"
+        # Perbaiki ownership jika perlu
+        chmod -R 755 www/ 2>/dev/null || true
     
-    # 7. Tambah platform Android (VERSI TUA YANG STABIL)
+    # 9. Add Android Platform (Gunakan versi kompatibel)
     - name: Add Android Platform
       run: |
-        cordova platform add android@10.1.1
-        echo "Android platform added"
+        # Clean dulu
+        rm -rf platforms plugins
+        
+        # Add platform dengan versi stabil
+        cordova platform add android@10.1.2
+        
+        # Verify
+        cordova platform ls
+        cordova requirements android
     
-    # 8. Build APK (GRADLE)
+    # 10. Add essential plugins (optional)
+    - name: Add Essential Plugins
+      run: |
+        # Hanya tambah jika diperlukan
+        cordova plugin add cordova-plugin-whitelist
+        cordova plugin add cordova-plugin-file
+        
+        # List plugins
+        cordova plugin ls
+    
+    # 11. Prepare Android project
+    - name: Prepare Android Project
+      run: |
+        cordova prepare android --verbose
+        
+        echo "=== Project Structure ==="
+        ls -la platforms/android/app/src/main/assets/www/
+    
+    # 12. Build APK
     - name: Build Android APK
       run: |
         echo "Building APK..."
-        cordova build android --verbose || echo "Build mungkin error, tapi kita coba continue"
+        cordova build android --release --verbose
+        
+        echo "=== Build Output ==="
+        find platforms/android -name "*.apk" -type f 2>/dev/null | xargs ls -la
     
-    # 9. Cari file APK hasil build
-    - name: Find APK Files
-      run: |
-        echo "=== Mencari file APK ==="
-        find . -name "*.apk" -type f 2>/dev/null || echo "APK tidak ditemukan"
-        find . -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null || true
-    
-    # 10. Upload APK jika ada
+    # 13. Upload APK artifact
     - name: Upload APK Artifact
-      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: hd-boost-ai-apk
         path: |
-          myapp/platforms/android/app/build/outputs/apk/**/*.apk
-          myapp/platforms/android/build/outputs/apk/**/*.apk
+          platforms/android/app/build/outputs/apk/release/*.apk
+          platforms/android/app/build/outputs/apk/debug/*.apk
         retention-days: 7
+        if-no-files-found: error
     
-    # 11. Jika gagal, beri error message
+    # 14. Build status summary
     - name: Build Status
-      if: failure()
       run: |
-        echo "❌ Build gagal!"
-        echo "Kemungkinan masalah:"
-        echo "1. Cordova/Android version mismatch"
-        echo "2. Plugin tidak kompatibel"
-        echo "3. Android SDK tidak ada"
-        echo ""
-        echo "SOLUSI: Build di komputer lokal atau pakai service online"      run: |
-        cordova create myapp com.hdboost.ai "HD BOOST AI"
-        cd myapp
-    
-    - name: Copy App Files
-      run: |
-        echo "Copying files..."
-        cp -r ../www/* www/ 2>/dev/null || echo "No www files to copy"
-        cp ../config.xml . 2>/dev/null || echo "config.xml not found"
-        echo "Files copied"
-    
-    - name: Add Android Platform
-      run: cordova platform add android
-    
-    - name: Add Plugins
-      run: |
-        cordova plugin add cordova-plugin-camera
-        cordova plugin add cordova-plugin-media-capture
-        cordova plugin add cordova-plugin-file
-        cordova plugin add cordova-plugin-dialogs
-    
-    - name: Build APK
-      run: cordova build android
-    
-    - name: Find APK
-      run: |
-        echo "=== Searching for APK ==="
-        find . -name "*.apk" -type f 2>/dev/null || echo "No APK found"
-    
-    - name: Upload APK
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: hd-boost-ai-apk
-        path: myapp/platforms/android/app/build/outputs/apk/debug/*.apk
+        APK_COUNT=$(find platforms/android -name "*.apk" -type f 2>/dev/null | wc -l)
+        if [ $APK_COUNT -gt 0 ]; then
+          echo "✅ Build SUCCESS! Found $APK_COUNT APK files"
+          find platforms/android -name "*.apk" -type f 2>/dev/null
+        else
+          echo "❌ Build FAILED! No APK files found"
+          exit 1
+        fi
