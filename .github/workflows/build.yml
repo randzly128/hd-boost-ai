@@ -3,42 +3,69 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
     - uses: actions/checkout@v4
+    
     - name: Setup Java
       uses: actions/setup-java@v4
       with:
         distribution: temurin
-        java-version: 17
+        java-version: 11
+    
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: 16
+    
     - name: Install Cordova
       run: npm install -g cordova
+    
+    - name: Check Files
+      run: |
+        echo "=== Current Directory ==="
+        pwd
+        ls -la
+        echo "=== www folder ==="
+        ls -la www/ || echo "www folder not found"
+    
     - name: Create Cordova Project
       run: |
-        cordova create build com.hdboost.ai "HD BOOST AI"
-        cd build
+        cordova create myapp com.hdboost.ai "HD BOOST AI"
+        cd myapp
+    
     - name: Copy App Files
       run: |
-        cp -r ../www/* www/
-        cp ../config.xml .
+        echo "Copying files..."
+        cp -r ../www/* www/ 2>/dev/null || echo "No www files to copy"
+        cp ../config.xml . 2>/dev/null || echo "config.xml not found"
+        echo "Files copied"
+    
     - name: Add Android Platform
       run: cordova platform add android
+    
     - name: Add Plugins
       run: |
         cordova plugin add cordova-plugin-camera
         cordova plugin add cordova-plugin-media-capture
         cordova plugin add cordova-plugin-file
         cordova plugin add cordova-plugin-dialogs
+    
     - name: Build APK
       run: cordova build android
+    
+    - name: Find APK
+      run: |
+        echo "=== Searching for APK ==="
+        find . -name "*.apk" -type f 2>/dev/null || echo "No APK found"
+    
     - name: Upload APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: hd-boost-ai-apk
-        path: build/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+        path: myapp/platforms/android/app/build/outputs/apk/debug/*.apk
